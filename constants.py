@@ -1,5 +1,3 @@
-# 📄 constants.py
-
 """Stores constant values used across the application."""
 
 FINANCIAL_METRICS = {

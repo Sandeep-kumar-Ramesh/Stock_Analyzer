@@ -1,10 +1,9 @@
-# 📄 data_utils.py
-
 """Handles all data fetching from yfinance and other external APIs."""
 
 import streamlit as st
 import yfinance as yf
 import requests
+from requests.exceptions import RequestException, JSONDecodeError
 
 @st.cache_data
 def search_for_ticker(query: str):
@@ -16,44 +15,52 @@ def search_for_ticker(query: str):
         response.raise_for_status()
         data = response.json()
         return data.get("quotes", [])
-    except requests.exceptions.RequestException as e:
+    except RequestException as e:
         st.toast(f"Network error during search: {e}", icon="🌐")
         return []
-    except (KeyError, IndexError, requests.exceptions.JSONDecodeError):
+    except (KeyError, IndexError, JSONDecodeError):
         st.toast("Could not parse search results.", icon="⚠️")
         return []
 
 @st.cache_data
-def get_stock_data(ticker, start_date, end_date):
-    """Retrieves and validates stock info and historical data."""
+def get_stock_info(ticker):
+    """Retrieves just the info dictionary for a ticker."""
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
-        if not info or ('longName' not in info and 'shortName' not in info):
-            return None, None
+        # A valid stock info dict should at least have a name
+        if info and ('shortName' in info or 'longName' in info):
+            return info
+        return None
+    except Exception: # yfinance can throw various errors
+        return None
+
+@st.cache_data
+def get_stock_data(ticker, start_date, end_date):
+    """Retrieves stock info and historical data."""
+    info = get_stock_info(ticker)
+    if not info:
+        return None, None
+    
+    try:
+        stock = yf.Ticker(ticker)
         historical_data = stock.history(start=start_date, end=end_date)
         if historical_data.empty:
             return info, None
         return info, historical_data
     except Exception:
-        return None, None
+        return info, None
 
-@st.cache_data
-def get_stock_info(ticker):
-    """Retrieves just the info dictionary for a ticker, optimized for comparison."""
-    try:
-        stock = yf.Ticker(ticker)
-        info = stock.info
-        return info if info and 'shortName' in info else None
-    except Exception:
-        return None
 
 @st.cache_data
 def get_exchange_rate(from_currency, to_currency):
     """Fetches the currency exchange rate from Yahoo Finance."""
-    if from_currency == to_currency: return 1.0
+    if from_currency == to_currency:
+        return 1.0
     try:
         data = yf.Ticker(f"{from_currency}{to_currency}=X")
         rate = data.info.get("regularMarketPrice")
         return float(rate) if rate else None
-    except Exception: return None
+    except (TypeError, ValueError, AttributeError):
+        # Handles cases where rate is None or info is not as expected
+        return None
