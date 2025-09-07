@@ -1,20 +1,18 @@
 import streamlit as st
 from contextlib import contextmanager
+import time 
 
 @contextmanager
 def show_loading_spinner(message="Loading..."):
-    """Shows a circular loading spinner with custom message."""
     with st.spinner(message):
         yield
 
 @contextmanager
 def with_loading_spinner(message="Loading..."):
-    """Context manager to add loading spinner to any code block."""
     with st.spinner(message):
         yield
 
 def show_loading_progress(message="Fetching data..."):
-    """Shows a progress bar with custom message."""
     progress_bar = st.progress(0)
     status_text = st.empty()
     

@@ -50,7 +50,7 @@ def get_exchange_rate(from_currency, to_currency):
     if from_currency == to_currency:
         return 1.0
     try:
-        data = yf.Ticker(f"{from_currency}{to_currency}=X")
+        data = yf.Ticker(f"{from_currency}{to_currency}=X")   # e.g., USDEUR=X
         rate = data.info.get("regularMarketPrice")
         return float(rate) if rate else None
     except (TypeError, ValueError, AttributeError):
